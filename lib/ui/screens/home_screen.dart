@@ -32,7 +32,7 @@ class HomeScreen extends StatelessWidget {
               title: const Text('Folder Standardization'),
               onTap: () {
                 Navigator.pop(context); // Close drawer
-                Navigator.pushNamed(context, Routes.folderStandardization);
+                Navigator.pushNamed(context, Routes.folderNormalization);
               },
             ),
             ListTile(
@@ -50,11 +50,17 @@ class HomeScreen extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            ElevatedButton(
+            onPressed: () {
+          Navigator.pushNamed(context, Routes.preferences);
+            },
+         child: const Text('Preferences'),
+          ),
             ElevatedButton.icon(
               icon: const Icon(Icons.folder),
               label: const Text('Folder Standardization'),
               onPressed: () {
-                Navigator.pushNamed(context, Routes.folderStandardization);
+                Navigator.pushNamed(context, Routes.folderNormalization);
               },
             ),
             const SizedBox(height: 20),

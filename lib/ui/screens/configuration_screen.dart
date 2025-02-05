@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:live_music_metadata_manager/core/models/artist_configuration.dart';
-import 'package:live_music_metadata_manager/core/app_state.dart';
+import 'package:live_music_metadata_manager/app_state.dart';
 
 class ConfigurationScreen extends StatefulWidget {
   const ConfigurationScreen({Key? key}) : super(key: key);

@@ -2,28 +2,10 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart' as path;
-import 'dart:io';
 import 'package:live_music_metadata_manager/core/models/media_models.dart';
+import 'package:live_music_metadata_manager/core/models/conversion_metadata.dart';
 
-class ConversionMetadata {
-  String artist;
-  String date;
-  String venue;
-  String source;
-  String taper;
-  bool createBackup;
-  String? backupPath;
 
-  ConversionMetadata({
-    required this.artist,
-    required this.date,
-    this.venue = '',
-    this.source = '',
-    this.taper = '',
-    this.createBackup = true,
-    this.backupPath,
-  });
-}
 
 class ConversionConfirmationDialog extends StatefulWidget {
   final List<MediaFile> filesToConvert;
@@ -49,26 +31,35 @@ class _ConversionConfirmationDialogState extends State<ConversionConfirmationDia
     metadata = _extractInitialMetadata();
   }
 
-  ConversionMetadata _extractInitialMetadata() {
-    // Extract metadata from folder name if it matches the pattern
-    final folderName = path.basename(widget.sourceFolder);
-    final gdMatch = RegExp(r'Grateful Dead - (\d{4})-(\d{2})-(\d{2})').firstMatch(folderName);
-    
-    if (gdMatch != null) {
-      final date = '${gdMatch[1]}-${gdMatch[2]}-${gdMatch[3]}';
-      return ConversionMetadata(
-        artist: 'Grateful Dead',
-        date: date,
-        backupPath: path.join(path.dirname(widget.sourceFolder), 'backup'),
-      );
-    }
-
+ ConversionMetadata _extractInitialMetadata() {
+  final folderName = path.basename(widget.sourceFolder);
+  final gdMatch = RegExp(r'Grateful Dead - (\d{4})-(\d{2})-(\d{2})').firstMatch(folderName);
+  
+  if (gdMatch != null) {
+    final date = '${gdMatch[1]}-${gdMatch[2]}-${gdMatch[3]}';
     return ConversionMetadata(
-      artist: '',
-      date: '',
+      artist: 'Grateful Dead',
+      date: date,
+      venue: '',       // Default empty value; update as needed.
+      source: '',      // Default empty value.
+      taper: '',       // Default empty value.
+      createBackup: false,  // Default value.
       backupPath: path.join(path.dirname(widget.sourceFolder), 'backup'),
     );
   }
+
+  return ConversionMetadata(
+    artist: '',
+    date: '',
+    venue: '',
+    source: '',
+    taper: '',
+    createBackup: false,
+    backupPath: path.join(path.dirname(widget.sourceFolder), 'backup'),
+  );
+}
+
+
 
   Future<void> _selectBackupFolder() async {
     setState(() {
@@ -80,12 +71,10 @@ class _ConversionConfirmationDialogState extends State<ConversionConfirmationDia
         dialogTitle: 'Select Backup Location',
       );
 
-      if (selectedDirectory != null) {
-        setState(() {
-          metadata.backupPath = selectedDirectory;
-        });
-      }
-    } finally {
+      setState(() {
+        metadata.backupPath = selectedDirectory;
+      });
+        } finally {
       setState(() {
         isLoadingBackupPath = false;
       });
