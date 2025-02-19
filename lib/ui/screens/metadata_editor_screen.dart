@@ -316,18 +316,6 @@ class _MetadataEditorScreenState extends State<MetadataEditorScreen> {
                           _hasUnsavedChanges = true;
                         });
                       },
-                      onSaveCatalog: _saveCatalog,
-                      onSaveToMedia: () async {
-                        if (catalogRelease?.mediaFolderPath != null) {
-                          await MetadataOperationsService.instance.saveMetadata(
-                            release: catalogRelease!,
-                            mediaFolderPath: catalogRelease!.mediaFolderPath!,
-                            artistName: _currentArtist,
-                          );
-                        } else {
-                          throw Exception('Media folder path is missing');
-                        }
-                      },
                     ),
                     const SizedBox(height: 16),
                     // Song Grid Widget

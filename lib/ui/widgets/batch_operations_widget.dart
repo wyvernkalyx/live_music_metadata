@@ -5,198 +5,105 @@ import '../../core/models/song.dart';
 
 class BatchOperationsWidget extends StatelessWidget {
   final ConcertRelease release;
-  final Function(ConcertRelease) onReleaseChanged;
-  final VoidCallback onSaveCatalog;
-  final VoidCallback onSaveToMedia;
+  final ValueChanged<ConcertRelease> onReleaseChanged;
 
   const BatchOperationsWidget({
     Key? key,
     required this.release,
     required this.onReleaseChanged,
-    required this.onSaveCatalog,
-    required this.onSaveToMedia,
   }) : super(key: key);
 
-  void _sortByTrack() {
-    final updatedSets = release.setlist.map((set) {
-      final sortedSongs = List<Song>.from(set.songs)
-        ..sort((a, b) => a.trackNumber.compareTo(b.trackNumber));
-      return ConcertSet(
-        setNumber: set.setNumber,
-        songs: sortedSongs,
-      );
-    }).toList();
+  /// Sorts all songs by track number and groups them into sets.
+  void _sortTracks() {
+    // Flatten all songs from existing sets
+    final allSongs = release.setlist.expand((set) => set.songs).toList();
+    allSongs.sort((a, b) => a.trackNumber.compareTo(b.trackNumber));
 
-    onReleaseChanged(release.copyWith(
-      setlist: updatedSets,
-    ));
-    
-    // Save changes
-    onSaveCatalog();
-    onSaveToMedia();
-  }
-
-  void _renumberTracks() {
-    final updatedSets = <ConcertSet>[];
-    
-    // If there's only one set, treat all songs as part of set 1
-    if (release.setlist.length == 1) {
-      final set = release.setlist[0];
-      final updatedSongs = <Song>[];
-      for (var i = 0; i < set.songs.length; i++) {
-        updatedSongs.add(set.songs[i].copyWith(
-          trackNumber: 101 + i,
-        ));
-      }
-      updatedSets.add(ConcertSet(
-        setNumber: set.setNumber,
-        songs: updatedSongs,
-      ));
-    } else {
-      // If there are multiple sets, number them accordingly
-      for (var set in release.setlist) {
-        final baseNumber = set.setNumber * 100;
-        final updatedSongs = <Song>[];
-        for (var i = 0; i < set.songs.length; i++) {
-          updatedSongs.add(set.songs[i].copyWith(
-            trackNumber: baseNumber + i + 1,
-          ));
-        }
-        updatedSets.add(ConcertSet(
-          setNumber: set.setNumber,
-          songs: updatedSongs,
-        ));
-      }
-    }
-
-    onReleaseChanged(release.copyWith(
-      setlist: updatedSets,
-    ));
-
-    // Save changes
-    onSaveCatalog();
-    onSaveToMedia();
-  }
-
-  void _createSets() {
-    // Get all songs
-    final allSongs = release.setlist
-        .expand((set) => set.songs)
-        .toList();
-    
-    // Group songs by set number
-    final songsBySet = <int, List<Song>>{};
+    // Group songs into sets based on track number ranges
+    final Map<int, List<Song>> newSets = {};
     for (final song in allSongs) {
-      final setNumber = song.trackNumber < 100 ? 1 : (song.trackNumber ~/ 100);
-      songsBySet.putIfAbsent(setNumber, () => []).add(song);
+      int setNumber = 1;
+      if (song.trackNumber >= 200 && song.trackNumber < 300) {
+        setNumber = 2;
+      } else if (song.trackNumber >= 300 && song.trackNumber < 400) {
+        setNumber = 3;
+      }
+      newSets.putIfAbsent(setNumber, () => []).add(song);
     }
-    
-    // Create new sets
-    final newSets = songsBySet.entries.map((entry) {
-      final setNumber = entry.key;
-      final songs = entry.value;
-      songs.sort((a, b) => a.trackNumber.compareTo(b.trackNumber));
+
+    final newSetlist = newSets.entries.map((entry) {
       return ConcertSet(
-        setNumber: setNumber,
-        songs: songs,
+        setNumber: entry.key,
+        songs: List<Song>.from(entry.value),
       );
     }).toList()
       ..sort((a, b) => a.setNumber.compareTo(b.setNumber));
-    
-    onReleaseChanged(release.copyWith(
-      setlist: newSets,
-      numberOfSets: newSets.length,
-    ));
 
-    // Save changes
-    onSaveCatalog();
-    onSaveToMedia();
+    onReleaseChanged(release.copyWith(setlist: newSetlist));
+  }
+
+  /// Renumbers tracks sequentially starting at 101.
+  void _renumberTracks() {
+    int newTrackNumber = 101;
+    
+    // If no sets exist, create Set 1 with all songs
+    if (release.setlist.isEmpty) {
+      final allSongs = release.setlist.expand((set) => set.songs).toList()
+        ..sort((a, b) => a.trackNumber.compareTo(b.trackNumber));
+      
+      final renumberedSongs = allSongs.map((song) {
+        final updatedSong = song.copyWith(trackNumber: newTrackNumber);
+        newTrackNumber++;
+        return updatedSong;
+      }).toList();
+
+      final newSetlist = [
+        ConcertSet(setNumber: 1, songs: renumberedSongs),
+      ];
+      onReleaseChanged(release.copyWith(setlist: newSetlist));
+      return;
+    }
+
+    // Renumber existing sets
+    final newSetlist = release.setlist.map((set) {
+      final renumberedSongs = set.songs.map((song) {
+        final updatedSong = song.copyWith(trackNumber: newTrackNumber);
+        newTrackNumber++;
+        return updatedSong;
+      }).toList();
+      return set.copyWith(songs: renumberedSongs);
+    }).toList();
+
+    onReleaseChanged(release.copyWith(setlist: newSetlist));
   }
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Divider(),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8.0),
+          child: Text(
+            'Track Operations',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+        ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            Text(
-              'Batch Operations',
-              style: Theme.of(context).textTheme.titleLarge,
+            ElevatedButton(
+              onPressed: _sortTracks,
+              child: const Text('Sort by Track'),
             ),
-            const SizedBox(height: 16),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Track Operations',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    Tooltip(
-                      message: 'Sort songs by track number within each set',
-                      child: ElevatedButton.icon(
-                        onPressed: _sortByTrack,
-                        icon: const Icon(Icons.sort),
-                        label: const Text('Sort by Track'),
-                      ),
-                    ),
-                    Tooltip(
-                      message: 'Renumber tracks sequentially within each set',
-                      child: ElevatedButton.icon(
-                        onPressed: _renumberTracks,
-                        icon: const Icon(Icons.numbers),
-                        label: const Text('Renumber Tracks'),
-                      ),
-                    ),
-                    Tooltip(
-                      message: 'Create sets based on track numbers',
-                      child: ElevatedButton.icon(
-                        onPressed: _createSets,
-                        icon: const Icon(Icons.playlist_add),
-                        label: const Text('Create Sets'),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Save Operations',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    Tooltip(
-                      message: 'Save changes to catalog file (assets/catalog/Grateful Dead - DATE.json)',
-                      child: ElevatedButton.icon(
-                        onPressed: onSaveCatalog,
-                        icon: const Icon(Icons.save),
-                        label: const Text('Save to Catalog'),
-                      ),
-                    ),
-                    Tooltip(
-                      message: 'Update metadata in all media files (FLAC tags)',
-                      child: ElevatedButton.icon(
-                        onPressed: onSaveToMedia,
-                        icon: const Icon(Icons.music_note),
-                        label: const Text('Save All to Media Files'),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+            ElevatedButton(
+              onPressed: _renumberTracks,
+              child: const Text('Renumber Tracks'),
             ),
           ],
         ),
-      ),
+      ],
     );
   }
 }
