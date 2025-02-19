@@ -2,24 +2,35 @@ name: live_music_metadata_manager
 description: A new Flutter project.
 publish_to: 'none'
 version: 1.0.0+1
-
+ 
 environment:
   sdk: '>=3.1.5 <4.0.0'
 
 dependencies:
   flutter:
     sdk: flutter
-  provider: ^6.0.5
-  file_picker: ^5.2.6
-  
-  cupertino_icons: ^1.0.8
-  path: ^1.8.3
+  provider: ^6.1.1
+  file_picker: ^6.1.1  # Updated to latest version
+  path: ^1.8.0
+  path_provider: ^2.0.15
+  cupertino_icons: ^1.0.6
+  uuid: ^4.2.1
   shared_preferences: ^2.2.2
+  ffmpeg_kit_flutter_full_gpl: ^6.0.3
+  flutter_media_metadata: ^1.0.0+1
+  crypto: ^3.0.2    # Add this line
+  logger: ^2.0.2+1    # For better logging
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^2.0.0
+  flutter_lints: ^3.0.1
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/
+    - assets/official_gd_songs.json
+    - assets/song_abbreviations.json
+    - assets/album_art/
+    - assets/stock_art/
