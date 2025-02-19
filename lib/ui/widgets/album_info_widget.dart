@@ -275,7 +275,7 @@ class _AlbumInfoWidgetState extends State<AlbumInfoWidget> {
                     const SizedBox(height: 8),
                     _buildReadOnlyField("Artist", widget.mediaRelease.artist),
                     const SizedBox(height: 8),
-                    _buildReadOnlyField("Album Title", widget.mediaRelease.albumTitle),
+                    _buildReadOnlyField("Original Album Title", widget.mediaRelease.originalAlbumTitle ?? widget.mediaRelease.albumTitle),
                     const SizedBox(height: 8),
                     _buildReadOnlyField("Assembled Album Title", _computeAssembledTitle(
                       date: widget.mediaRelease.date,
