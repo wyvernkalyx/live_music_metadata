@@ -13,66 +13,73 @@ class BatchOperationsWidget extends StatelessWidget {
     required this.onReleaseChanged,
   }) : super(key: key);
 
-  /// Sorts all songs by track number and groups them into sets.
+  /// Sorts songs by their current track number and groups them into sets.
   void _sortTracks() {
-    // Flatten all songs from existing sets
-    final allSongs = release.setlist.expand((set) => set.songs).toList();
+    // Flatten all songs from existing sets.
+    List<Song> allSongs = release.setlist.expand((set) => set.songs).toList();
     allSongs.sort((a, b) => a.trackNumber.compareTo(b.trackNumber));
 
-    // Group songs into sets based on track number ranges
-    final Map<int, List<Song>> newSets = {};
-    for (final song in allSongs) {
-      int setNumber = 1;
-      if (song.trackNumber >= 200 && song.trackNumber < 300) {
+    // Group songs by track number range.
+    // If track number is less than 200, assign to set 1,
+    // between 200 and 299 assign to set 2,
+    // between 300 and 399 assign to set 3, etc.
+    Map<int, List<Song>> groups = {};
+    for (Song song in allSongs) {
+      int setNumber;
+      if (song.trackNumber < 200) {
+        setNumber = 1;
+      } else if (song.trackNumber < 300) {
         setNumber = 2;
-      } else if (song.trackNumber >= 300 && song.trackNumber < 400) {
+      } else if (song.trackNumber < 400) {
         setNumber = 3;
+      } else {
+        setNumber = song.trackNumber ~/ 100;
       }
-      newSets.putIfAbsent(setNumber, () => []).add(song);
+      groups.putIfAbsent(setNumber, () => []).add(song);
     }
 
-    final newSetlist = newSets.entries.map((entry) {
-      return ConcertSet(
-        setNumber: entry.key,
-        songs: List<Song>.from(entry.value),
-      );
-    }).toList()
-      ..sort((a, b) => a.setNumber.compareTo(b.setNumber));
+    // Create a new setlist from these groups.
+    List<ConcertSet> newSetlist = groups.entries.map((entry) {
+      entry.value.sort((a, b) => a.trackNumber.compareTo(b.trackNumber));
+      return ConcertSet(setNumber: entry.key, songs: entry.value);
+    }).toList();
+    newSetlist.sort((a, b) => a.setNumber.compareTo(b.setNumber));
 
     onReleaseChanged(release.copyWith(setlist: newSetlist));
   }
 
-  /// Renumbers tracks sequentially starting at 101.
+  /// Renumbers all tracks sequentially starting at 101 and reassigns sets.
   void _renumberTracks() {
-    int newTrackNumber = 101;
-    
-    // If no sets exist, create Set 1 with all songs
-    if (release.setlist.isEmpty) {
-      final allSongs = release.setlist.expand((set) => set.songs).toList()
-        ..sort((a, b) => a.trackNumber.compareTo(b.trackNumber));
-      
-      final renumberedSongs = allSongs.map((song) {
-        final updatedSong = song.copyWith(trackNumber: newTrackNumber);
-        newTrackNumber++;
-        return updatedSong;
-      }).toList();
+    // Flatten and sort songs.
+    List<Song> allSongs = release.setlist.expand((set) => set.songs).toList();
+    allSongs.sort((a, b) => a.trackNumber.compareTo(b.trackNumber));
 
-      final newSetlist = [
-        ConcertSet(setNumber: 1, songs: renumberedSongs),
-      ];
-      onReleaseChanged(release.copyWith(setlist: newSetlist));
-      return;
+    int newTrack = 101;
+    List<Song> updatedSongs = allSongs.map((song) {
+      return song.copyWith(trackNumber: newTrack++);
+    }).toList();
+
+    // Group songs based on their new track numbers.
+    Map<int, List<Song>> groups = {};
+    for (Song song in updatedSongs) {
+      int setNumber;
+      if (song.trackNumber < 200) {
+        setNumber = 1;
+      } else if (song.trackNumber < 300) {
+        setNumber = 2;
+      } else if (song.trackNumber < 400) {
+        setNumber = 3;
+      } else {
+        setNumber = song.trackNumber ~/ 100;
+      }
+      groups.putIfAbsent(setNumber, () => []).add(song);
     }
 
-    // Renumber existing sets
-    final newSetlist = release.setlist.map((set) {
-      final renumberedSongs = set.songs.map((song) {
-        final updatedSong = song.copyWith(trackNumber: newTrackNumber);
-        newTrackNumber++;
-        return updatedSong;
-      }).toList();
-      return set.copyWith(songs: renumberedSongs);
+    List<ConcertSet> newSetlist = groups.entries.map((entry) {
+      entry.value.sort((a, b) => a.trackNumber.compareTo(b.trackNumber));
+      return ConcertSet(setNumber: entry.key, songs: entry.value);
     }).toList();
+    newSetlist.sort((a, b) => a.setNumber.compareTo(b.setNumber));
 
     onReleaseChanged(release.copyWith(setlist: newSetlist));
   }
@@ -80,7 +87,7 @@ class BatchOperationsWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Divider(),
         Padding(
@@ -91,12 +98,13 @@ class BatchOperationsWidget extends StatelessWidget {
           ),
         ),
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          mainAxisAlignment: MainAxisAlignment.start, // left-justify buttons
           children: [
             ElevatedButton(
               onPressed: _sortTracks,
               child: const Text('Sort by Track'),
             ),
+            const SizedBox(width: 16),
             ElevatedButton(
               onPressed: _renumberTracks,
               child: const Text('Renumber Tracks'),
